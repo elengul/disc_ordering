@@ -8,6 +8,11 @@ struct namelist {
     char **last;
 };
 
+struct ordering {
+    size_t count, size;
+    size_t *idx;
+};
+
 struct namelist *
 namelist_create(void)
 {
@@ -52,6 +57,34 @@ namelist_destroy(struct namelist *list)
     }
     free(list->first);
     free(list->last);
+    free(list);
+}
+
+struct ordering *
+ordering_create(void)
+{
+    struct ordering *out = malloc(sizeof(*out));
+    out->size  = 8;
+    out->count = 0;
+    out->idx   = malloc(out->size * sizeof(out->idx[0]));
+    return out;
+}
+
+void
+ordering_push(struct ordering *order, size_t num)
+{
+    if (order->size == order->count) {
+        order->size *= 2;
+        order->idx   = realloc(order->idx, order->size * sizeof(order->idx[0]));
+    }
+    order->idx[order->count++] = num;
+}
+
+void
+ordering_destroy(struct ordering *order)
+{
+    free(order->idx);
+    free(order);
 }
 
 void
@@ -91,11 +124,22 @@ namelist_export(struct namelist *list)
 }
 
 void
-namelist_print(struct namelist *list)
+namelist_print(struct namelist *list, struct ordering *order)
 {
     printf("People currently on the list:\n");
-    for (size_t i = 0; i < list->count; i++)
+    for (size_t i = 0; i < list->count; i++) {
+        if (order) {
+            unsigned no_print = 0;
+            for (size_t j = 0; j < order->count; j++)
+                if (order->idx[j] == i) {
+                    no_print = 1;
+                    break;
+                }
+            if (no_print)
+                continue;
+        }
         printf("%zu. %s %s\n", i+1, list->first[i], list->last[i]);
+    }
 }
 
 void
@@ -134,7 +178,18 @@ namelist_augment(struct namelist *list)
 void
 generate_seating(struct namelist *list)
 {
-    size_t *order = malloc((1 + list->count)*sizeof(*order));
+    struct ordering *order = ordering_create();
+    char cont;
+    unsigned choice;
+    do {
+        namelist_print(list, order);
+        printf("Please select a person that is here (by their number): ");
+        scanf("%u", &choice);
+        printf("\n");
+        ordering_push(order, choice);
+    } while (cont != 'n');
+    
+    /*    size_t *order = malloc((1 + list->count)*sizeof(*order));
     unsigned is_odd = list->count % 2;
     size_t num =  is_odd ? (list->count - 1) : (list->count - 2);
     size_t idx = 0;
@@ -155,7 +210,7 @@ generate_seating(struct namelist *list)
             printf("%zu. %s %s\n", i, list->first[order[i]],
                    list->last[order[i]]);
     }
-    free(order);
+    free(order);*/
 }
 
 int main(void)
@@ -171,7 +226,7 @@ int main(void)
             namelist_import(list);
             break;
         case 2:
-            namelist_print(list);
+            namelist_print(list, NULL);
             break;
         case 3:
             namelist_augment(list);
