@@ -49,6 +49,20 @@ namelist_push(struct namelist *list, char *first, char *last)
 }
 
 void
+namelist_pop(struct namelist *list, unsigned idx)
+{
+    free(list->first[idx]);
+    free(list->last[idx]);
+    for (size_t i = idx+1; i < list->count; i++) {
+        list->first[i-1] = list->first[i];
+        list->last[i-1]  = list->last[i];
+    }
+    list->first[list->count-1] = NULL;
+    list->last[list->count-1]  = NULL;
+    list->count--;
+}
+
+void
 namelist_destroy(struct namelist *list)
 {
     for (size_t i = 0; i < list->count; i++) {
@@ -94,9 +108,11 @@ print_opt_list(void)
     printf("  1. Import list of names from file\n");
     printf("  2. Print current list of names\n");
     printf("  3. Add a new name to the list\n");
-    printf("  4. Generate seating order\n");
-    printf("  5. Save current list of names to file (WARNING: This will overwrite the previous file\n");
-    printf("  6. End Program\n");
+    printf("  4. Remove a new name to the list\n");
+    printf("  5. Change the position of a new name to the list\n");
+    printf("  6. Generate seating order\n");
+    printf("  7. Save current list of names to file (WARNING: This will overwrite the previous file)\n");
+    printf("  8. End Program\n");
     printf("\n  ? ");
 }
 
@@ -169,17 +185,51 @@ namelist_augment(struct namelist *list)
         }
         do {
             printf("\nWould you like to enter another name? (y/n) ");
-            scanf("%c", &opt);
-            printf("\n");
+            scanf(" %c", &opt);
         } while (!((opt == 'y') || (opt == 'n')));
     } while (opt != 'n');
+}
+
+void
+namelist_strip(struct namelist *list)
+{
+    unsigned idx;
+    namelist_print(list, NULL);
+    printf("Please select the number of the person to be removed: ");
+    scanf("%u", &idx);
+    namelist_pop(list, idx-1);
+}
+
+void
+namelist_shuffle(struct namelist *list)
+{
+    unsigned idx1, idx2;
+    namelist_print(list, NULL);
+    printf("Please select the number of the person to be moved: ");
+    scanf("%u", &idx1);
+    printf("What position should they be? ");
+    scanf(" %u", &idx2);
+    char *F_temp = list->first[idx1-1];
+    char *L_temp = list->last[idx1-1];
+    if (idx1 < idx2)
+        for (size_t i = idx1; i < idx2; i++) {
+            list->first[i-1] = list->first[i];
+            list->last[i-1]  = list->last[i];
+        }
+    else
+        for (size_t i = idx1-1; i >= idx2; i--) {
+            list->first[i] = list->first[i-1];
+            list->last[i]  = list->last[i-1];
+        }
+    list->first[idx2-1] = F_temp;
+    list->last[idx2-1]  = L_temp;
 }
 
 void
 generate_seating(struct namelist *list)
 {
     struct ordering *order = ordering_create();
-    char cont;
+    char cont = 'n';
     unsigned choice;
     do {
         namelist_print(list, order);
@@ -232,17 +282,23 @@ int main(void)
             namelist_augment(list);
             break;
         case 4:
-            generate_seating(list);
+            namelist_strip(list);
             break;
         case 5:
-            namelist_export(list);
+            namelist_shuffle(list);
             break;
         case 6:
-            continue;
+            generate_seating(list);
+            break;
+        case 7:
+            namelist_export(list);
+            break;
+        case 8:
+            break;
         default:
             printf("Please select a valid option!\n\n");
         }
-    } while (opt != 6);
+    } while (opt != 8);
     namelist_destroy(list);
     return 0;
 }
