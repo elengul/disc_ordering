@@ -94,6 +94,21 @@ ordering_push(struct ordering *order, size_t num)
     order->idx[order->count++] = num;
 }
 
+int
+comparator(const void *p1, const void *p2)
+{
+    size_t l = *(const int *)p1;
+    size_t r = *(const int *)p2;
+    return (l-r);
+}
+
+void
+ordering_sort(struct ordering *order)
+{
+    size_t *arr = order->idx;
+    qsort((void *)arr, order->count, sizeof(arr[0]), comparator);
+}
+
 void
 ordering_destroy(struct ordering *order)
 {
