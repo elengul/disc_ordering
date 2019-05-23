@@ -249,33 +249,37 @@ generate_seating(struct namelist *list)
     do {
         namelist_print(list, order);
         printf("Please select a person that is here (by their number): ");
-        scanf("%u", &choice);
-        printf("\n");
-        ordering_push(order, choice);
+        scanf(" %u", &choice);
+        ordering_push(order, choice-1);
+        printf("Would you like to select another name? (y/n) ");
+        scanf(" %c", &cont);
     } while (cont != 'n');
-    
-    /*    size_t *order = malloc((1 + list->count)*sizeof(*order));
-    unsigned is_odd = list->count % 2;
-    size_t num =  is_odd ? (list->count - 1) : (list->count - 2);
+    ordering_sort(order);
+    size_t seat_order[order->count];
+    unsigned is_odd = order->count % 2;
+    size_t num =  is_odd ? (order->count - 1) : (order->count - 2);
     size_t idx = 0;
     for (;;) {
-        order[idx++] = num;
+        seat_order[idx++] = num;
         if (num == 0)
             break;
         num -= 2;
     }
-    order[idx++] = 9999;
-    num =  is_odd ? (list->count - 2) : (list->count - 1);
+    seat_order[idx++] = 9999;
+    num =  is_odd ? (order->count - 2) : (order->count - 1);
     for (size_t i = 1; i <= num; i += 2)
-        order[idx++] = i;
-    for (size_t i = 0; i <= list->count; i++) {
-        if (order[i] == 9999)
-            printf("%zu. Shi Ye\n", i);
-        else
-            printf("%zu. %s %s\n", i, list->first[order[i]],
-                   list->last[order[i]]);
+        seat_order[idx++] = i;
+    for (size_t i = 0; i <= order->count; i++) {
+        if (seat_order[i] == 9999)
+            printf("%zu. Shi Ye\n", i+1);
+        else {
+            idx = order->idx[seat_order[i]];
+            printf("%zu. %s %s\n", i+1, list->first[idx],
+                   list->last[idx]);
+        }
     }
-    free(order);*/
+    ordering_destroy(order);
+    return;
 }
 
 int main(void)
